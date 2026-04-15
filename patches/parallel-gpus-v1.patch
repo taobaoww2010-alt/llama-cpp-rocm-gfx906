@@ -1,0 +1,35 @@
+diff --git a/common/arg.cpp b/common/arg.cpp
+index 71f63ba..3caaddd 100644
+--- a/common/arg.cpp
++++ b/common/arg.cpp
+@@ -2395,6 +2395,18 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
+             }
+         }
+     ).set_env("LLAMA_ARG_MAIN_GPU"));
++    add_opt(common_arg(
++        { "-pg", "--parallel-gpus" }, "N",
++        string_format("number of GPUs to use for parallel inference (default: %d). "
++            "Requires --parallel to be >= N. Each GPU runs a separate model instance.", params.parallel_gpus),
++        [](common_params & params, int value) {
++            if (value < 1 || value > llama_max_devices()) {
++                throw std::invalid_argument(
++                    string_format("error: --parallel-gpus must be between 1 and %d\n", llama_max_devices()));
++            }
++            params.parallel_gpus = value;
++        }
++    ).set_env("LLAMA_ARG_PARALLEL_GPUS"));
+     add_opt(common_arg(
+         { "-fit", "--fit" }, "[on|off]",
+         string_format("whether to adjust unset arguments to fit in device memory ('on' or 'off', default: '%s')", params.fit_params ? "on" : "off"),
+diff --git a/common/common.h b/common/common.h
+index 62201ea..ac9f1c6 100644
+--- a/common/common.h
++++ b/common/common.h
+@@ -436,6 +436,7 @@ struct common_params {
+     int32_t n_gpu_layers       = -1;   // number of layers to store in VRAM, -1 is auto, <= -2 is all
+     int32_t main_gpu           = 0;    // the GPU that is used for scratch and small tensors
+     float   tensor_split[128]  = {0};  // how split tensors should be distributed across GPUs
++    int32_t parallel_gpus      = 1;    // number of GPUs to use for parallel inference (data parallelism)
+     bool    fit_params         = true; // whether to fit unset model/context parameters to free device memory
+     int32_t fit_params_min_ctx = 4096; // minimum context size to set when trying to reduce memory use
+ 
