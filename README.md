@@ -1,10 +1,11 @@
-# llama.cpp ROCm/gfx906 Support + Multi-GPU Communication
+# llama.cpp ROCm/gfx906 Support + Multi-GPU Tensor Parallel
 
-本仓库包含两个主要组件：
+本仓库包含三个主要组件：
 
 1. **llama.cpp ROCm/gfx906 编译支持** - 已编译的二进制文件和补丁
 2. **ggml-rccl 多 GPU 通信模块** - 张量并行通信后端
-3. **multi-gpu-launcher 多 GPU 启动器** - 数据并行方案
+3. **ggml-tensor-parallel 张量并行模块** - 双 GPU 协作推理核心
+4. **multi-gpu-launcher 多 GPU 启动器** - 数据并行方案
 
 ---
 
@@ -79,6 +80,55 @@ GGMLRCCLComm::instance().init(2, devices);
 
 // AllReduce
 GGMLRCCLComm::instance().all_reduce(sendBuf, recvBuf, count, GGML_TYPE_F16, GGML_OP_SUM, stream);
+```
+
+---
+
+## ggml-tensor-parallel: 张量并行核心
+
+### 概述
+
+张量并行实现，参考 vLLM-gfx906 架构，在 attention 和 FFN 层之间插入 AllReduce 同步。
+
+### 文件结构
+
+```
+ggml-tensor-parallel/
+├── ggml-tensor-parallel.h     # 主头文件
+├── ggml-tensor-parallel.cpp    # 核心实现
+├── ggml-tp-comm.h              # 通信原语
+├── ggml-tp-comm.cpp           # Ring AllReduce 实现
+├── ggml-tp-shard.h            # 权重分片
+├── ggml-tp-shard.cpp          # 分片实现
+└── CMakeLists.txt             # 构建配置
+```
+
+### 架构
+
+```
+GPU 0: [Q,K,V W0/2] ──┐
+                       ├── AllReduce ──> attention output
+GPU 1: [Q,K,V W1/2] ──┘
+
+attention output ──> [Gate/Up W0/2] ──┐
+                                     ├── AllReduce ──> FFN output
+                  [Gate/Up W1/2] ─────┘
+```
+
+### API
+
+```cpp
+#include "ggml-tensor-parallel.h"
+
+// 初始化
+int devices[] = {0, 1};
+ggml_tp_init(&tp, 2, devices);
+
+// 张量并行矩阵乘法 (自动 all_reduce)
+struct ggml_tensor * output = ggml_cuda_tp_mul_mat(&tp, ctx, weight, input, true);
+
+// Barrier 同步
+ggml_tp_barrier(&tp);
 ```
 
 ---
