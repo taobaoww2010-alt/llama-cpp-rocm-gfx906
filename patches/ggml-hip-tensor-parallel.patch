@@ -1,0 +1,11 @@
+# ggml/src/ggml-hip/CMakeLists.txt patch
+# Apply this patch to llama.cpp to enable tensor parallel module
+
+# Add after line ~85 (after ggml_add_backend_library)
+
+# Add tensor parallel module for multi-GPU inference
+option(GGML_TENSOR_PARALLEL "ggml: enable tensor parallel support for multi-GPU" ON)
+if (GGML_TENSOR_PARALLEL)
+    add_subdirectory(../ggml-tensor-parallel ../ggml-tensor-parallel-bin)
+    target_link_libraries(ggml-hip PRIVATE ggml-tensor-parallel)
+endif()

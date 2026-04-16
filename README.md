@@ -75,25 +75,32 @@ GPU VRAM: GPU0 31%, GPU1 31%
 ## 项目结构
 
 ```
-.
+llama-cpp-rocm-gfx906/
+├── CMakeLists.txt                     # 根 CMake 配置
 ├── ggml/
 │   ├── include/
-│   │   ├── ggml-cuda-tp.h           # CUDA 张量并行
-│   │   ├── ggml-tensor-parallel.h   # 张量并行核心
+│   │   ├── ggml-cuda-tp.h           # CUDA 张量并行头文件
+│   │   ├── ggml-tensor-parallel.h    # 张量并行核心 API
 │   │   └── ggml-tensor-parallel/
-│   │       ├── ggml-tp-comm.h       # 通信原语
-│   │       └── ggml-tp-shard.h      # 权重分片
+│   │       ├── ggml-tp-comm.h        # 通信原语声明
+│   │       └── ggml-tp-shard.h       # 权重分片声明
 │   └── src/
 │       ├── ggml-cuda/
-│       │   ├── ggml-cuda-tp.cu      # 实现
-│       │   └── ggml-cuda.h
+│       │   ├── ggml-cuda.h           # CUDA 辅助头文件
+│       │   └── ggml-cuda-tp.cu       # CUDA 张量并行实现
 │       └── ggml-tensor-parallel/
-│           ├── ggml-tensor-parallel.cpp
-│           ├── ggml-tp-comm.cpp      # Ring AllReduce
-│           └── ggml-tp-shard.cpp     # 分片
+│           ├── CMakeLists.txt        # 构建配置
+│           ├── ggml-tensor-parallel.cpp  # 核心实现
+│           ├── ggml-tp-comm.cpp       # Ring AllReduce 实现
+│           └── ggml-tp-shard.cpp      # 权重分片实现
 ├── src/
-│   ├── llama-tensor-parallel.h
-│   └── llama-tensor-parallel.cpp
+│   ├── llama-tensor-parallel.h       # LLaMA 集成头文件
+│   ├── llama-tensor-parallel.cpp     # LLaMA 层集成
+│   └── multi-gpu/
+│       └── multi-gpu-scheduler.h     # 多 GPU 调度器
+├── ggml-rccl.cpp / ggml-rccl.h       # RCCL 通信库
+├── hip-comm.cpp / hip-comm.h         # HIP 通信辅助
+├── test_rccl.cpp                     # RCCL 测试
 ├── build-rocm63-gfx906.sh            # 编译脚本
 ├── DEVELOPMENT.md                    # 详细开发日志
 └── README.md
