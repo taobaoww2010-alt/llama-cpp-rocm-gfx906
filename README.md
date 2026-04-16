@@ -9,6 +9,54 @@
 
 ---
 
+## 编译说明 (ROCm 6.3 + gfx906)
+
+### 问题
+
+ROCm 6.3 的 clang 18 编译器默认不支持 gfx906 架构，编译时会报错：
+```
+clang: error: unsupported CUDA gpu architecture: gfx906
+```
+
+### 解决方案
+
+通过添加 C++ 标准库 include 路径，可以成功编译：
+
+```bash
+# 设置环境
+export ROCM_PATH=/opt/rocm-6.3.0
+export HIP_PATH=$ROCM_PATH
+export CMAKE_PREFIX_PATH="$ROCM_PATH/lib/cmake"
+export CPLUS_INCLUDE_PATH="/usr/include/c++/11:/usr/include/x86_64-linux-gnu/c++/11"
+export HIPCXX="$ROCM_PATH/lib/llvm/bin/clang++"
+
+# 配置编译
+mkdir -p build && cd build
+cmake .. \
+  -DGGML_HIP=ON \
+  -DGPU_TARGETS=gfx906 \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_HIP_FLAGS="-fPIC -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11"
+
+# 编译
+make -j$(nproc)
+```
+
+或使用提供的构建脚本：
+
+```bash
+./build-rocm63-gfx906.sh
+```
+
+### 验证编译成功
+
+```bash
+./build/bin/llama-cli --help
+# 应该显示：found 2 ROCm devices
+```
+
+---
+
 ## 快速开始
 
 ### 双 GPU 并行推理
