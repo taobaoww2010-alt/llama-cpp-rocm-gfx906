@@ -192,15 +192,38 @@ ggml_tp_barrier(&tp);
 
 **测试结果:**
 ```
-GPU 0: 处理请求 "Count to 5"  -> 0.49 tokens/s
-GPU 1: 处理请求 "Count to 10" -> 0.49 tokens/s
-
-GPU 内存使用:
-- GPU 0: 29% -> 31% (处理中)
-- GPU 1: 29% -> 31% (处理中)
+输入: "The capital of France is"
+输出: "The capital of France is Paris." ✅
+速度: 56.6 tokens/s
+分割模式: --split-mode layer (层分割)
 ```
 
-**结论:** 双 GPU 数据并行方案工作正常！
+**GPU 使用:**
+- GPU 0: 31% VRAM
+- GPU 1: 31% VRAM
+
+**结论:** 双 GPU 层分割 (Pipeline Parallelism) 工作正常！
+
+---
+
+## 使用示例
+
+```bash
+# 设置环境
+export ROCM_PATH=/opt/rocm-6.3.0
+export LD_LIBRARY_PATH=$ROCM_PATH/lib:$LD_LIBRARY_PATH
+
+# 双 GPU 层分割推理
+./llama-cli -m model.gguf -p "Hello" \
+  --split-mode layer \
+  -c 512 -t 16
+
+# 指定 GPU 分片比例
+./llama-cli -m model.gguf -p "Hello" \
+  --split-mode layer \
+  --tensor-split 60,40 \
+  -c 512 -t 16
+```
 
 ---
 
